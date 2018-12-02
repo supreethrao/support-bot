@@ -11,7 +11,7 @@ type team struct {
 }
 
 var members = func() []string {
-	val, err := ioutil.ReadFile("/tmp/team.yml")
+	val, err := ioutil.ReadFile("/data/team_members.yml")
 	members := team{}
 
 	err = yaml.Unmarshal(val, &members)

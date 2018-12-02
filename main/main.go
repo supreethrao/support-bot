@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/supreethrao/support-bot/rota"
 	"log"
 	"net/http"
@@ -9,7 +10,8 @@ import (
 
 func serve() {
 	handleMembersList()
-	log.Fatal(http.ListenAndServe(":9090", nil))
+	http.Handle("/metrics", promhttp.Handler())
+	log.Fatal(http.ListenAndServe("localhost:9090", nil))
 }
 
 func handleMembersList() {
