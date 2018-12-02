@@ -18,7 +18,7 @@ func TestRota(t *testing.T) {
 
 var _ = Describe("Tests retrieving team", func() {
 	Context("Initialise data", func() {
-		FIt("New gets data from the file", func() {
+		It("List gets data from the file", func() {
 			Expect(rota.List()).To(Equal([] string{"someone", "someone else", "some random person"}))
 		})
 	})
