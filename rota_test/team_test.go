@@ -1,13 +1,13 @@
 package rota_test
 
 import (
-	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/supreethrao/support-bot/rota"
-	"gopkg.in/yaml.v2"
+	"github.com/sky-uk/support-bot/rota"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -16,30 +16,56 @@ func TestRota(t *testing.T) {
 	RunSpecs(t, "Test suite for team")
 }
 
-var _ = Describe("Tests retrieving team", func() {
-	Context("Initialise data", func() {
-		It("List gets data from the file", func() {
-			Expect(rota.List()).To(Equal([] string{"someone", "someone else", "some random person"}))
+var _ = Describe("CRUD of team members", func() {
+
+	var myTeam rota.Team = nil
+	BeforeEach(func() {
+		myTeam = rota.NewTeam(temporaryFilepath())
+	})
+
+	Context("Read team members", func() {
+		It("List gets data from the members file", func() {
+			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "third person", "some other person"}))
 		})
 	})
 
-	Context("Test writing data back to a file", func() {
-		It("Create a struct and write as a yaml file", func() {
-			type team struct {
-				Members []string `yaml:"members"`
-			}
+	Context("Adding new team members", func() {
+		It("Add new team member adds the member to the list", func() {
+			myTeam.Add("new member")
+			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "third person", "some other person", "new member"}))
+		})
 
-			myteam := team{[]string{"hello", "world"}}
-			data, err := yaml.Marshal(myteam)
+		It("Add new team member should not fail if the member already exists", func() {
+			myTeam.Add("third person")
+			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "third person", "some other person"}))
+		})
+	})
 
-			if err == nil {
-				damn := ioutil.WriteFile("/tmp/test-team.yml", data, os.ModePerm)
-				if damn != nil {
-					fmt.Println("DAMN")
-				}
-			} else {
-				fmt.Println("SUCKS")
-			}
+	Context("Removing team members", func() {
+		It("Removing existing team member returns success", func() {
+			myTeam.Remove("third person")
+			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "some other person"}))
+		})
+		It("Removing non-existing team member returns success", func() {
+			myTeam.Remove("non-existent person")
+			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "third person", "some other person"}))
 		})
 	})
 })
+
+func temporaryFilepath() string {
+	_, filename, _, _ := runtime.Caller(1)
+	basePath := filepath.Dir(filename)
+	data, err := ioutil.ReadFile(basePath + "/test-team-members.yml")
+	if err == nil {
+		tempPath, err := ioutil.TempFile("/tmp", "supportrotatest")
+		if err == nil {
+			ioutil.WriteFile(tempPath.Name(), data, os.ModeTemporary)
+			return tempPath.Name()
+		} else {
+			panic("Unable to create the temp file")
+		}
+	} else {
+		panic(err)
+	}
+}
