@@ -6,35 +6,43 @@ import (
 	"github.com/sky-uk/support-bot/rota"
 	"log"
 	"net/http"
-	"path/filepath"
-	"runtime"
 )
 
-var myTeam = rota.NewTeam(teamMembersFilePath())
+var myTeam = rota.NewTeam("core-infrastructure")
 
 func serve() {
-	handleMembersList()
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe("localhost:9090", nil))
-}
 
-func handleMembersList() {
 	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			_, err := fmt.Fprint(w, myTeam.List())
-			if err != nil {
-				log.Fatal(err)
-			}
+			// Would be useful to provide full support details of team members
+			_, _ = fmt.Fprint(w, myTeam.List())
 		}
 	})
+
+	http.Handle("/metrics", promhttp.Handler())
+
+	http.HandleFunc("/support/next", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodGet {
+			_, _ = fmt.Fprint(writer, rota.Next(myTeam))
+		}
+	})
+
+	http.HandleFunc("/support/override", func(writer http.ResponseWriter, request *http.Request) {
+		// fetch the name to be used and fix it
+	})
+
+	http.HandleFunc("/team/member", func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method {
+		case http.MethodPost:
+			// Add new team member
+		case http.MethodDelete:
+			//	Remove member from support rota
+		}
+	})
+
+	log.Fatal(http.ListenAndServe("localhost:9090", nil))
 }
 
 func main() {
 	serve()
-}
-
-func teamMembersFilePath() string {
-	_, filename, _, _ := runtime.Caller(1)
-	basePath := filepath.Dir(filename)
-	return basePath + "/core-team-members.yml"
 }
