@@ -6,15 +6,29 @@ import (
 	"github.com/sky-uk/support-bot/localdb"
 	"github.com/sky-uk/support-bot/rota"
 	"github.com/sky-uk/support-bot/rota_test/helper"
+	"testing"
+	"time"
 )
+
+func TestTeam(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Test suite for team")
+}
 
 var _ = Describe("CRUD of team members", func() {
 
 	var myTeam rota.Team = nil
-	BeforeEach(func() {
+	BeforeSuite(func() {
 		myTeam = rota.NewTeam("test_team")
+	})
+
+	BeforeEach(func() {
 		Expect(localdb.Remove(myTeam.TeamKey())).To(Succeed())
-		Expect(localdb.Write(myTeam.TeamKey(), helper.TestTeamMembers()))
+		for _, member := range helper.TestTeamMembers {
+			Expect(localdb.Remove(myTeam.SupportDaysCounterKey(member))).To(Succeed())
+			Expect(localdb.Remove(myTeam.LatestDayOnSupportKey(member))).To(Succeed())
+		}
+		Expect(localdb.Write(myTeam.TeamKey(), helper.TestTeamMembersListYaml))
 	})
 
 	Context("Read team members", func() {
@@ -58,6 +72,21 @@ var _ = Describe("CRUD of team members", func() {
 		It("Removing non-existing team member returns success", func() {
 			Expect(myTeam.Remove("non-existent person")).To(Succeed())
 			Expect(myTeam.List()).To(Equal([] string{"person1", "person2", "third person"}))
+		})
+	})
+
+	Context("Setting the person on support", func() {
+		It("The person being set on support will have the relevant keys updated", func() {
+			// given
+			Expect(localdb.Write(myTeam.SupportDaysCounterKey("person1"), helper.Uint16ToBytes(7))).To(Succeed())
+
+			//when
+			Expect(myTeam.SetPersonOnSupport("person1")).To(Succeed())
+
+			//then
+			Expect(localdb.Read(myTeam.SupportDaysCounterKey("person1"))).To(Equal(helper.Uint16ToBytes(8)))
+			Expect(localdb.Read(myTeam.LatestDayOnSupportKey("person1"))).To(Equal([]byte(helper.Today())))
+			Expect(localdb.Read(myTeam.SupportPersonOnDayKey(time.Now()))).To(Equal([]byte("person1")))
 		})
 	})
 

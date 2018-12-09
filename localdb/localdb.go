@@ -11,6 +11,8 @@ const (
 	dbLocation string = "/tmp/data"
 )
 
+var sequences = make(map[string]*badger.Sequence)
+
 func init() {
 	info, err := os.Stat(dbLocation)
 	if err != nil {
@@ -94,6 +96,39 @@ func Remove(key string) error {
 	return db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
+}
+
+func NewSeq(memberName string) error {
+	if _, ok := sequences[memberName]; !ok {
+		if seq, err := db.GetSequence([]byte(memberName), 1); err == nil {
+			sequences[memberName] = seq
+			return nil
+		} else {
+			return err
+		}
+	}
+	log.Printf("sequence key %s already exists", memberName)
+	return nil
+}
+
+func NextSeq(memberName string) uint64 {
+	if seq, ok := sequences[memberName]; ok {
+		if next, err := seq.Next(); err != nil {
+			panic("Unable to obtain the next sequence")
+		} else {
+			return next
+		}
+	} else {
+		if err := NewSeq(memberName); err == nil {
+			if next, err := sequences[memberName].Next(); err == nil {
+				return next
+			} else{
+				panic("Unable to obtain the next sequence")
+			}
+		} else {
+			panic("Unable to obtain the next sequence")
+		}
+	}
 }
 
 func Close() {

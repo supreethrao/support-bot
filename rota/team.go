@@ -5,51 +5,27 @@ import (
 	"fmt"
 	"github.com/dgraph-io/badger"
 	"github.com/sky-uk/support-bot/localdb"
+	"github.com/sky-uk/support-bot/rota/keys"
 	"gopkg.in/yaml.v2"
 	"log"
 	"time"
 )
 
-const teamKey string = "team_members"
-
 type Team interface {
 	List() []string
 	Add(newMember string) error
 	Remove(existingMember string) error
-	SupportHistoryFor(member string) IndividualSupportHistory
+	SupportHistoryOfIndividual(member string) IndividualSupportHistory
 	SupportHistoryForTeam() TeamSupportHistory
-	SupportPersonFor(date time.Time) string
+	SupportPersonOnTheDay(date time.Time) string
 	SetPersonOnSupport(memberName string) error
-	Keys
-}
-
-type Keys interface {
-	TeamKey() string
-	SupportDaysCounterKey(memberName string) string
-	SupportPersonOnDayKey(supportDay time.Time) string
-	LatestDayOnSupportKey(memberName string) string
-}
-
-func (t *team) TeamKey() string {
-	return t.name + "::" + teamKey
-}
-
-func (t *team) SupportDaysCounterKey(memberName string) string {
-	return t.name + "::member::" + memberName
-}
-
-func (t *team) SupportPersonOnDayKey(supportDay time.Time) string {
-	formattedDay := supportDay.Format("02-01-2006")
-	return t.name + "::" + formattedDay
-}
-
-func (t *team) LatestDayOnSupportKey(memberName string) string {
-	return t.name + "::latest-day::" + memberName
+	keys.Keys
 }
 
 // name will be used as the key prefix
 type team struct {
 	name string
+	keys.Keys
 }
 
 type teamMembers struct {
@@ -68,7 +44,7 @@ func (t *team) List() []string {
 	members := teamMembers{}
 
 	if err = yaml.Unmarshal(data, &members); err != nil {
-		log.Fatalf("Unable to obtain team members: %v", err)
+		log.Panicf("Unable to obtain team members: %v", err)
 	}
 
 	return members.Members
@@ -113,7 +89,7 @@ func (t *team) Remove(existingMember string) error {
 	}
 }
 
-func (t *team) SupportHistoryFor(member string) IndividualSupportHistory {
+func (t *team) SupportHistoryOfIndividual(member string) IndividualSupportHistory {
 	history := IndividualSupportHistory{member, 0, "UNKNOWN"}
 	count, err := localdb.Read(t.SupportDaysCounterKey(member))
 	if err == nil {
@@ -131,12 +107,12 @@ func (t *team) SupportHistoryFor(member string) IndividualSupportHistory {
 func (t *team) SupportHistoryForTeam() TeamSupportHistory {
 	teamHistory := make([]IndividualSupportHistory, 0)
 	for _, member := range t.List() {
-		teamHistory = append(teamHistory, t.SupportHistoryFor(member))
+		teamHistory = append(teamHistory, t.SupportHistoryOfIndividual(member))
 	}
 	return teamHistory
 }
 
-func (t *team) SupportPersonFor(date time.Time) string {
+func (t *team) SupportPersonOnTheDay(date time.Time) string {
 	supportPerson, err := localdb.Read(t.SupportPersonOnDayKey(date))
 	if err == nil {
 		return string(supportPerson)
@@ -147,7 +123,10 @@ func (t *team) SupportPersonFor(date time.Time) string {
 func (t *team) SetPersonOnSupport(memberName string) error {
 	supportKeys := make(map[string][]byte)
 
-	// get the next sequence number for the counter
+	currentlySupportedDays, _ := localdb.Read(t.SupportDaysCounterKey(memberName))
+	incrementedSupportDays := uintToBytes(bytesToUint(currentlySupportedDays) + 1)
+
+	supportKeys[t.SupportDaysCounterKey(memberName)] = incrementedSupportDays
 	supportKeys[t.LatestDayOnSupportKey(memberName)] = []byte(today())
 	supportKeys[t.SupportPersonOnDayKey(time.Now())] = []byte(memberName)
 
@@ -165,5 +144,8 @@ func bytesToUint(val []byte) uint16 {
 }
 
 func NewTeam(name string) Team {
-	return &team{name}
+	return &team{
+		name,
+		keys.NewKey(name),
+	}
 }

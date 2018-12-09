@@ -45,6 +45,11 @@ func today() string {
 
 func Next(t Team) string {
 	teamSupportHistory := t.SupportHistoryForTeam()
+
+	if teamSupportHistory.Len() < 1 {
+		return "UNKNOWN"
+	}
+
 	sort.Sort(teamSupportHistory)
 
 	for _, individual := range teamSupportHistory {
@@ -54,5 +59,3 @@ func Next(t Team) string {
 	}
 	return teamSupportHistory[0].Name
 }
-
-

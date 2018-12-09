@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sky-uk/support-bot/localdb"
 	"github.com/sky-uk/support-bot/rota"
 	"log"
 	"net/http"
@@ -14,8 +15,7 @@ func serve() {
 
 	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			// Would be useful to provide full support details of team members
-			_, _ = fmt.Fprint(w, myTeam.List())
+			_, _ = fmt.Fprint(w, myTeam.SupportHistoryForTeam())
 		}
 	})
 
@@ -27,7 +27,7 @@ func serve() {
 		}
 	})
 
-	http.HandleFunc("/support/override", func(writer http.ResponseWriter, request *http.Request) {
+	http.HandleFunc("/support/set", func(writer http.ResponseWriter, request *http.Request) {
 		// fetch the name to be used and fix it
 	})
 
@@ -44,5 +44,6 @@ func serve() {
 }
 
 func main() {
+	defer localdb.Close()
 	serve()
 }

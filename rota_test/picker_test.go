@@ -7,7 +7,13 @@ import (
 	"github.com/sky-uk/support-bot/rota"
 	"github.com/sky-uk/support-bot/rota_test/helper"
 	"sort"
+	"testing"
 )
+
+func TestPicker(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Test suite for picking logic")
+}
 
 var _ = Describe("Test suite for logic of picking next", func() {
 
@@ -16,7 +22,11 @@ var _ = Describe("Test suite for logic of picking next", func() {
 	BeforeEach(func() {
 		myTeam = rota.NewTeam("test_team")
 		Expect(localdb.Remove(myTeam.TeamKey())).To(Succeed())
-		Expect(localdb.Write(myTeam.TeamKey(), helper.TestTeamMembers()))
+		for _, member := range helper.TestTeamMembers {
+			Expect(localdb.Remove(myTeam.SupportDaysCounterKey(member))).To(Succeed())
+			Expect(localdb.Remove(myTeam.LatestDayOnSupportKey(member))).To(Succeed())
+		}
+		Expect(localdb.Write(myTeam.TeamKey(), helper.TestTeamMembersListYaml))
 	})
 
 	Context("Test sorting logic", func() {
