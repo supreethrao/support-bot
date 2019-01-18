@@ -49,6 +49,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:59392ed8afb901aab4287d4894df8191722e34f3957716f4350c8c133ce99046"
   name = "github.com/hpcloud/tail"
@@ -63,12 +71,31 @@
   revision = "a1dbeea552b7c8df4b542c66073e393de198a800"
 
 [[projects]]
+  digest = "1:f97285a3b0a496dcf8801072622230d513f69175665d94de60eb042d03387f6c"
+  name = "github.com/julienschmidt/httprouter"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   pruneopts = "UT"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  digest = "1:95d38d218bf2290987c6b0e885a9f0f2d3d3239235acaddca01c3fe36e5e5566"
+  name = "github.com/nlopes/slack"
+  packages = [
+    ".",
+    "slackutilsx",
+  ]
+  pruneopts = "UT"
+  revision = "b9033a72a20bf84563485e86a2adbea4bf265804"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:5f4b78246f0bcb105b1e3b2b9e22b52a57cd02f57a8078572fe27c62f4a75ff7"
@@ -248,6 +275,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/dgraph-io/badger",
+    "github.com/julienschmidt/httprouter",
+    "github.com/nlopes/slack",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/prometheus/client_golang/prometheus",

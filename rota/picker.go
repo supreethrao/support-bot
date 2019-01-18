@@ -44,18 +44,22 @@ func today() string {
 }
 
 func Next(t Team) string {
-	teamSupportHistory := t.SupportHistoryForTeam()
+	teamSupportHistory := OrderedList(t.SupportHistoryForTeam())
 
 	if teamSupportHistory.Len() < 1 {
 		return "UNKNOWN"
 	}
-
-	sort.Sort(teamSupportHistory)
 
 	for _, individual := range teamSupportHistory {
 		if differenceBetweenDays(individual.LatestSupportDay, today()) > 2 {
 			return individual.Name
 		}
 	}
+
 	return teamSupportHistory[0].Name
+}
+
+func OrderedList(teamSupportHistory TeamSupportHistory) TeamSupportHistory {
+	sort.Sort(teamSupportHistory)
+	return teamSupportHistory
 }

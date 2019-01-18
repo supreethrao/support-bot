@@ -52,7 +52,7 @@ var _ = Describe("CRUD of team members", func() {
 		It("Add new team member initialise their support counter key to 0", func() {
 			newTeamMember := "fourth person"
 			Expect(myTeam.Add(newTeamMember)).To(Succeed())
-			Expect(myTeam.SupportHistoryFor(newTeamMember).DaysSupported).To(Equal(uint16(0)))
+			Expect(myTeam.SupportHistoryOfIndividual(newTeamMember).DaysSupported).To(Equal(uint16(0)))
 		})
 
 		It("Adding an existing team member again should not reset the supported days ", func() {
@@ -60,7 +60,7 @@ var _ = Describe("CRUD of team members", func() {
 			Expect(localdb.Write(myTeam.SupportDaysCounterKey(existingTeamMember), helper.Uint16ToBytes(7))).To(Succeed())
 
 			Expect(myTeam.Add(existingTeamMember)).To(Succeed())
-			Expect(myTeam.SupportHistoryFor(existingTeamMember).DaysSupported).To(Equal(uint16(7)))
+			Expect(myTeam.SupportHistoryOfIndividual(existingTeamMember).DaysSupported).To(Equal(uint16(7)))
 		})
 	})
 
