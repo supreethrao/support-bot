@@ -27,6 +27,7 @@ var _ = Describe("CRUD of team members", func() {
 		for _, member := range helper.TestTeamMembers {
 			Expect(localdb.Remove(myTeam.SupportDaysCounterKey(member))).To(Succeed())
 			Expect(localdb.Remove(myTeam.LatestDayOnSupportKey(member))).To(Succeed())
+			Expect(localdb.Remove(myTeam.SupportPersonOnDayKey(time.Now()))).To(Succeed())
 		}
 		Expect(localdb.Write(myTeam.TeamKey(), helper.TestTeamMembersListYaml))
 	})
@@ -81,7 +82,7 @@ var _ = Describe("CRUD of team members", func() {
 			Expect(localdb.Write(myTeam.SupportDaysCounterKey("person1"), helper.Uint16ToBytes(7))).To(Succeed())
 
 			//when
-			Expect(myTeam.SetPersonOnSupport("person1")).To(Succeed())
+			Expect(myTeam.SetPersonOnSupportForToday("person1")).To(Succeed())
 
 			//then
 			Expect(localdb.Read(myTeam.SupportDaysCounterKey("person1"))).To(Equal(helper.Uint16ToBytes(8)))

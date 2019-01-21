@@ -279,6 +279,7 @@
     "github.com/nlopes/slack",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "gopkg.in/yaml.v2",

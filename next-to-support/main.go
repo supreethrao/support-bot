@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sky-uk/support-bot/localdb"
 	"github.com/sky-uk/support-bot/rota"
-	"github.com/sky-uk/support-bot/rota/slackhandler"
 	"log"
 	"net/http"
 )
@@ -18,11 +17,9 @@ func serve() {
 	router := httprouter.New()
 
 	router.GET("/members", func(writer http.ResponseWriter, request *http.Request, _ httprouter.Params) {
-		_, _ = fmt.Fprint(writer, myTeam.SupportHistoryForTeam())
-	})
-
-	router.POST("/members", func(writer http.ResponseWriter, request *http.Request, _ httprouter.Params) {
-		_, _ = fmt.Fprint(writer, myTeam.SupportHistoryForTeam())
+		writer.Header().Set("Content-Type", "application/json")
+		jsonData, _ := json.Marshal(myTeam.SupportHistoryForTeam())
+		writer.Write(jsonData)
 	})
 
 	router.DELETE("/members/:name", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -31,23 +28,38 @@ func serve() {
 		}
 	})
 
-	router.GET("/support/next", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		_, _ = fmt.Fprint(writer, slackhandler.MemberOptions(myTeam.SupportHistoryForTeam()))
+	router.POST("/members/:name", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		if err := myTeam.Add(params.ByName("name")); err != nil {
+			_, _ = fmt.Fprint(writer, )
+		}
+	})
 
+	router.GET("/support/next", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		fmt.Fprint(writer, rota.Next(myTeam))
+	})
+
+	router.GET("/support/confirm/:name", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		if err := myTeam.SetPersonOnSupportForToday(params.ByName("name")); err == nil {
+			writer.WriteHeader(http.StatusAccepted)
+		} else {
+			fmt.Fprintln(writer, err)
+		}
+	})
+
+	router.GET("/support/override/:name", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		if err := myTeam.OverrideSupportPersonForToday(params.ByName("name")); err == nil {
+			writer.WriteHeader(http.StatusAccepted)
+		} else {
+			fmt.Fprintln(writer, err)
+		}
 	})
 
 	http.Handle("/metrics", promhttp.Handler())
-
-	http.HandleFunc("/support/confirm", func(writer http.ResponseWriter, request *http.Request) {
-		buf := new(bytes.Buffer)
-		_, _ = buf.ReadFrom(request.Body)
-	})
 
 	log.Fatal(http.ListenAndServe(":9090", router))
 }
 
 func main() {
-	myTeam.Reset()
 	defer localdb.Close()
 	serve()
 }

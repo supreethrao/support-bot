@@ -1,5 +1,8 @@
 all: check install docker
 
+imageVersion=PASSED_FROM_CLI
+currentGoPath=~/workspace/blah
+
 setup:
 	@echo "setup"
 	@go get github.com/golang/lint/golint
@@ -15,9 +18,12 @@ install:
 	@echo "install"
 	@mkdir -p ./bin
 	@env GOOS=linux GOARCH=amd64 go install -v ./next-to-support
-	@cp ~/go/bin/linux_amd64/next-to-support ./bin
+	@cp $(currentGoPath)/bin/next-to-support ./bin
 	
 
 docker:
 	@echo "docker"
-	@docker build -t support-bot:5 .
+	@echo "$(imageVersion)"
+	@docker build -t local/support-bot:v$(imageVersion) .
+	@docker tag local/support-bot:v$(imageVersion) registry.tools.cosmic.sky/core-engineering/test-repo/support-bot:v$(imageVersion)
+	@docker push registry.tools.cosmic.sky/core-engineering/test-repo/support-bot:v$(imageVersion)

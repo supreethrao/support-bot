@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/dgraph-io/badger"
+	"github.com/pkg/errors"
 	"github.com/sky-uk/support-bot/localdb"
 	"github.com/sky-uk/support-bot/rota/keys"
 	"gopkg.in/yaml.v2"
@@ -19,7 +20,8 @@ type Team interface {
 	SupportHistoryOfIndividual(member string) IndividualSupportHistory
 	SupportHistoryForTeam() TeamSupportHistory
 	SupportPersonOnTheDay(date time.Time) string
-	SetPersonOnSupport(memberName string) error
+	SetPersonOnSupportForToday(memberName string) error
+	OverrideSupportPersonForToday(memberName string) error
 	keys.Keys
 }
 
@@ -91,7 +93,7 @@ func (t *team) Remove(existingMember string) error {
 }
 
 func (t *team) SupportHistoryOfIndividual(member string) IndividualSupportHistory {
-	history := IndividualSupportHistory{member, 0, "UNKNOWN"}
+	history := IndividualSupportHistory{member, 0, "31-12-2006"}
 	count, err := localdb.Read(t.SupportDaysCounterKey(member))
 	if err == nil {
 		history.DaysSupported = bytesToUint(count)
@@ -118,11 +120,49 @@ func (t *team) SupportPersonOnTheDay(date time.Time) string {
 	if err == nil {
 		return string(supportPerson)
 	}
-	return fmt.Sprintf("Unable to retrieve support person for %v", date)
+
+	log.Printf("Unable to retrieve support person for %v", date)
+	return "UNKNOWN"
 }
 
-func (t *team) SetPersonOnSupport(memberName string) error {
+func (t *team) SetPersonOnSupportForToday(memberName string) error {
 	supportKeys := make(map[string][]byte)
+
+	personAssignedForTheDay := t.SupportPersonOnTheDay(time.Now())
+
+	if personAssignedForTheDay != "UNKNOWN" {
+		return errors.New(fmt.Sprintf("%s is already assigned for the day", personAssignedForTheDay))
+	}
+
+	currentlySupportedDays, _ := localdb.Read(t.SupportDaysCounterKey(memberName))
+	incrementedSupportDays := uintToBytes(bytesToUint(currentlySupportedDays) + 1)
+
+	supportKeys[t.SupportDaysCounterKey(memberName)] = incrementedSupportDays
+	supportKeys[t.LatestDayOnSupportKey(memberName)] = []byte(today())
+	supportKeys[t.SupportPersonOnDayKey(time.Now())] = []byte(memberName)
+
+	return localdb.MultiWrite(supportKeys)
+}
+
+func (t *team) OverrideSupportPersonForToday(memberName string) error {
+	supportKeys := make(map[string][]byte)
+
+	personAssignedForTheDay := t.SupportPersonOnTheDay(time.Now())
+
+	if personAssignedForTheDay == "UNKNOWN" {
+		return t.SetPersonOnSupportForToday(memberName)
+	}
+
+	supportedDaysAsBytes, _ := localdb.Read(t.SupportDaysCounterKey(personAssignedForTheDay))
+	adjustedSupportDays := uint16(0)
+	supportedDays := bytesToUint(supportedDaysAsBytes)
+	if supportedDays > 0 {
+		adjustedSupportDays = supportedDays - 1
+	}
+
+	supportKeys[t.SupportDaysCounterKey(personAssignedForTheDay)] = uintToBytes(adjustedSupportDays)
+	// This is incorrect - need to traverse through the history and get the date this person was previously on support
+	supportKeys[t.LatestDayOnSupportKey(personAssignedForTheDay)] = []byte("31-12-2006")
 
 	currentlySupportedDays, _ := localdb.Read(t.SupportDaysCounterKey(memberName))
 	incrementedSupportDays := uintToBytes(bytesToUint(currentlySupportedDays) + 1)
